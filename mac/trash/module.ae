@@ -1,0 +1,24 @@
+// mac.trash — move a file or folder to the Trash the way Finder does: the
+// Trash of its own volume, a unique name if one is taken, and Finder's
+// "Put Back" works afterwards. `gio trash` and `rm` cannot do that here.
+//
+//   where, err = trash.item("/Users/me/Downloads/old.dmg")
+//   // where = "/Users/me/.Trash/old.dmg" (or "old 2.dmg"), err = ""
+@source("trash.m")
+@link("-Wl,-framework,Foundation")
+
+exports(item, available)
+
+import std.string
+
+extern macae_trash_item(path: string) -> int
+extern macae_trash_result() -> string @heap
+extern macae_trash_error() -> string @heap
+
+available() -> int { return 1 }
+
+// (path in the Trash, "") or ("", error).
+item(path: string) -> {
+    if macae_trash_item(path) == 1 { return macae_trash_result(), "" }
+    return "", macae_trash_error()
+}

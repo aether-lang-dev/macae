@@ -1,0 +1,49 @@
+// mac.iopolicy — this process's (or thread's) disk I/O policy,
+// setiopolicy_np(3). A bulk reader (a disk scanner, an indexer) sets
+// THROTTLE so foreground apps keep their bandwidth; IMPORTANT is the
+// default for a GUI app's main thread.
+//
+//   err = iopolicy.set(iopolicy.THROTTLE, iopolicy.SCOPE_PROCESS)
+//   cur = iopolicy.get(iopolicy.SCOPE_PROCESS)
+@source("iopolicy.c")
+
+exports(set, get, name, available,
+    DEFAULT, IMPORTANT, PASSIVE, THROTTLE, UTILITY, STANDARD,
+    SCOPE_PROCESS, SCOPE_THREAD)
+
+import std.string
+
+extern macae_iopolicy_set(policy: int, scope: int) -> int
+extern macae_iopolicy_get(scope: int) -> int
+
+// The numbers are libSystem's IOPOL_* values (sys/resource.h).
+const DEFAULT: int = 0
+const IMPORTANT: int = 1
+const PASSIVE: int = 2
+const THROTTLE: int = 3
+const UTILITY: int = 4
+const STANDARD: int = 5
+const SCOPE_PROCESS: int = 0
+const SCOPE_THREAD: int = 1
+
+available() -> int { return 1 }
+
+// "" on success, else the errno as text.
+set(policy: int, scope: int) -> string {
+    rc = macae_iopolicy_set(policy, scope)
+    if rc == 0 { return "" }
+    return "setiopolicy_np failed (errno ${rc})"
+}
+
+// The current policy (one of the constants), or -1.
+get(scope: int) -> int { return macae_iopolicy_get(scope) }
+
+name(policy: int) -> string {
+    if policy == DEFAULT { return "default" }
+    if policy == IMPORTANT { return "important" }
+    if policy == PASSIVE { return "passive" }
+    if policy == THROTTLE { return "throttle" }
+    if policy == UTILITY { return "utility" }
+    if policy == STANDARD { return "standard" }
+    return "unknown"
+}

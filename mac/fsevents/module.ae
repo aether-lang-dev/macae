@@ -1,0 +1,94 @@
+// mac.fsevents — what changed under a directory tree, from the FSEvents
+// service. A watch delivers into a buffer on its own thread; poll it when
+// you like, no run loop needed. Remember current_id() and open_since() it
+// next run to replay what changed while you were not running — how an app
+// rescans only the folders that changed.
+//
+//   w, err = fsevents.open("/Users/me/Documents", 0.5)
+//   ... later, on a timer:
+//   n = fsevents.poll(w)
+//   i = 0
+//   while i < n {
+//       p = fsevents.path(w, i)          // the directory (or, with
+//       f = fsevents.flags(w, i)         //   FILE_EVENTS, the file) that changed
+//       if (f & fsevents.MUST_SCAN_SUBDIRS) != 0 { rescan_everything_under(p) }
+//       i = i + 1
+//   }
+//   fsevents.close(w)
+//
+// Paths come back as the service resolves them: /private/var/…, not the
+// /var/… symlink you gave it. Compare by suffix, or realpath what you pass.
+@source("fsevents.c")
+@link("-Wl,-framework,CoreServices")
+
+exports(open, open_since, poll, flush, path, flags, id, current_id, latest_id, close,
+    available, is_set,
+    MUST_SCAN_SUBDIRS, USER_DROPPED, KERNEL_DROPPED, IDS_WRAPPED, HISTORY_DONE,
+    ROOT_CHANGED, ITEM_CREATED, ITEM_REMOVED, ITEM_RENAMED, ITEM_MODIFIED,
+    ITEM_IS_FILE, ITEM_IS_DIR, ITEM_IS_SYMLINK, SINCE_NOW)
+
+import std.string
+
+extern macae_fsevents_open(path: string, since_id: long, latency: float) -> ptr
+extern macae_fsevents_flush(h: ptr)
+extern macae_fsevents_poll(h: ptr) -> int
+extern macae_fsevents_path(h: ptr, i: int) -> string @heap
+extern macae_fsevents_flags(h: ptr, i: int) -> long
+extern macae_fsevents_id(h: ptr, i: int) -> long
+extern macae_fsevents_current_id() -> long
+extern macae_fsevents_latest_id(h: ptr) -> long
+extern macae_fsevents_close(h: ptr)
+
+// FSEventStreamEventFlags (CoreServices/FSEvents.h).
+const MUST_SCAN_SUBDIRS: long = 1
+const USER_DROPPED: long = 2
+const KERNEL_DROPPED: long = 4
+const IDS_WRAPPED: long = 8
+const HISTORY_DONE: long = 16
+const ROOT_CHANGED: long = 32
+const ITEM_CREATED: long = 256
+const ITEM_REMOVED: long = 512
+const ITEM_RENAMED: long = 2048
+const ITEM_MODIFIED: long = 4096
+const ITEM_IS_FILE: long = 65536
+const ITEM_IS_DIR: long = 131072
+const ITEM_IS_SYMLINK: long = 262144
+const SINCE_NOW: long = -1
+
+available() -> int { return 1 }
+
+// Watch `dir` for changes from now on. `latency` is how many seconds the
+// service may hold events to coalesce them (0.5 is typical; a test uses
+// 0.05 and flush()). (watch, "") or (null, error).
+open(dir: string, latency: float) -> {
+    return open_since(dir, SINCE_NOW, latency)
+}
+
+// Watch `dir`, first replaying every event after `since_id` (a value from
+// current_id() or latest_id() saved by an earlier run). When the replay is
+// done an event with HISTORY_DONE arrives.
+open_since(dir: string, since_id: long, latency: float) -> {
+    h = macae_fsevents_open(dir, since_id, latency)
+    if h == null { return null, "cannot watch ${dir}" }
+    return h, ""
+}
+
+// Ask the service to deliver what it is still holding.
+flush(w: ptr) { macae_fsevents_flush(w) }
+
+// Take everything delivered so far as the current batch; returns its size.
+// The previous batch's paths are freed here.
+poll(w: ptr) -> int { return macae_fsevents_poll(w) }
+path(w: ptr, i: int) -> string { return macae_fsevents_path(w, i) }
+flags(w: ptr, i: int) -> long { return macae_fsevents_flags(w, i) }
+id(w: ptr, i: int) -> long { return macae_fsevents_id(w, i) }
+
+// Is `flag` set in `flags`? (`&` on longs, spelled out.)
+is_set(fl: long, flag: long) -> int {
+    if (fl & flag) != 0 { return 1 }
+    return 0
+}
+
+current_id() -> long { return macae_fsevents_current_id() }
+latest_id(w: ptr) -> long { return macae_fsevents_latest_id(w) }
+close(w: ptr) { macae_fsevents_close(w) }

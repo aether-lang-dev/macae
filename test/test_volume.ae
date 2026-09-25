@@ -1,0 +1,56 @@
+// mac.volume — the boot volume's numbers are consistent with each other
+// and with statvfs; the mounted list includes the root.
+import std.spec
+import std.string
+import std.fs
+import mac.volume
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.volume") {
+        spec.it("reads the boot volume") callback {
+            spec.assert_eq(volume.read("/"), 1, "readable")
+            spec.assert_true(volume.total() > 0, "a total")
+            spec.assert_true(volume.available_bytes() <= volume.total(), "available ≤ total")
+            spec.assert_true(volume.important() >= volume.available_bytes(), "important ≥ available (purgeable)")
+            spec.assert_true(volume.important() <= volume.total(), "important ≤ total")
+            spec.assert_eq_long(volume.purgeable(), volume.important() - volume.available_bytes(), "purgeable is the gap")
+            spec.assert_eq_long(volume.used(), volume.total() - volume.important(), "used is the rest")
+            if volume.reports_purgeable() == 0 {
+                spec.assert_eq_long(volume.important(), volume.available_bytes(), "no figure here: important falls back to available")
+                spec.assert_eq_long(volume.purgeable(), 0, "and nothing is counted purgeable")
+            }
+            spec.assert_true(string.length(volume.name()) > 0, "a name")
+            spec.assert_true(string.length(volume.format()) > 0, "a format")
+            spec.assert_eq(volume.is_root(), 1, "it is the root filesystem")
+            spec.assert_eq(volume.is_internal(), 1, "internal")
+            spec.assert_str_eq(volume.mount_point(), "/", "mounted at /")
+        }
+        spec.it("agrees with statvfs on the total, within a block") callback {
+            _ = volume.read("/")
+            total, _free, _avail, err = fs.statvfs("/")
+            spec.assert_str_eq(err, "", "statvfs ok")
+            long diff = volume.total() - total
+            if diff < 0 { diff = 0 - diff }
+            spec.assert_true(diff <= 1048576, "totals within 1 MiB of each other")
+        }
+        spec.it("says why a path that is not there cannot be read") callback {
+            spec.assert_eq(volume.read("/no/such/volume/path"), 0, "not readable")
+            spec.assert_true(string.length(volume.error()) > 0, "an error")
+        }
+        spec.it("lists the mounted volumes, root included") callback {
+            n = volume.mounted()
+            spec.assert_true(n >= 1, "at least one")
+            found = 0
+            i = 0
+            while i < n {
+                if string.equals(volume.mounted_path(i), "/") == 1 { found = 1 }
+                i = i + 1
+            }
+            spec.assert_eq(found, 1, "/ is listed")
+            spec.assert_str_eq(volume.mounted_path(n), "", "past the end is empty")
+        }
+    }
+    return spec.run_summary(fw)
+}

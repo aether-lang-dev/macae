@@ -1,0 +1,49 @@
+// mac.quicklook — the thumbnails and previews Finder shows.
+//
+//   err = quicklook.thumbnail("/Users/me/report.pdf", 256, 256, "/tmp/t.png")
+//     renders any previewable file (PDF, images, video, documents, code) to
+//     a PNG. Works from any process — no window needed. Synchronous.
+//
+//   err = quicklook.preview("/Users/me/report.pdf")
+//     the Quick Look panel (Space bar in Finder) over the app's window.
+//     Needs a running application, which an aether-ui window is; from a
+//     bare tool it answers "no application". preview_available() says which.
+@source("quicklook.m")
+@link("-Wl,-framework,Foundation")
+@link("-Wl,-framework,AppKit")
+@link("-Wl,-framework,Quartz")
+@link("-Wl,-framework,QuickLookThumbnailing")
+@link("-Wl,-framework,ImageIO")
+@link("-Wl,-framework,CoreGraphics")
+
+exports(thumbnail, preview, preview_many, preview_visible, preview_close,
+    preview_available, available)
+
+import std.string
+
+extern macae_quicklook_thumbnail(path: string, w: int, h: int, out: string, timeout_s: float) -> int
+extern macae_quicklook_error() -> string @heap
+extern macae_quicklook_preview(paths: string) -> int
+extern macae_quicklook_preview_visible() -> int
+extern macae_quicklook_preview_close()
+extern macae_quicklook_has_app() -> int
+
+available() -> int { return 1 }
+
+// A PNG thumbnail of `path`, at most w×h, at `out`. "" or an error.
+thumbnail(path: string, w: int, h: int, out: string) -> string {
+    if macae_quicklook_thumbnail(path, w, h, out, 20.0) == 1 { return "" }
+    return macae_quicklook_error()
+}
+
+// 1 when there is an application for the panel to belong to.
+preview_available() -> int { return macae_quicklook_has_app() }
+
+preview(path: string) -> string { return preview_many(path) }
+// Several files, newline-separated: the panel pages through them.
+preview_many(paths: string) -> string {
+    if macae_quicklook_preview(paths) == 1 { return "" }
+    return macae_quicklook_error()
+}
+preview_visible() -> int { return macae_quicklook_preview_visible() }
+preview_close() { macae_quicklook_preview_close() }

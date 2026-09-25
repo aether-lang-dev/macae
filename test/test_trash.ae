@@ -1,0 +1,43 @@
+// mac.trash — an item moves to the Trash, keeps its name (or gets a unique
+// one), and is gone from where it was. The test removes what it trashed.
+import std.spec
+import std.string
+import std.fs
+import std.os
+import mac.trash
+
+main() {
+    fw = spec.init()
+    d, _e = fs.make_temp_dir(os.temp_dir(), "macae-trash")
+
+    spec.describe(fw, "mac.trash") {
+        spec.it("moves a file to the Trash") callback {
+            f = string.concat(d, "/macae-trash-test.txt")
+            _w = fs.write(f, "bin me")
+            where, err = trash.item(f)
+            spec.assert_str_eq(err, "", "trashed")
+            spec.assert_false(fs.exists(f), "gone from the folder")
+            spec.assert_true(fs.exists(where), "present in the Trash")
+            spec.assert_contains(where, "/.Trash/", "in a Trash folder")
+            spec.assert_contains(where, "macae-trash-test", "keeps its name")
+            _c = fs.delete(where)
+        }
+        spec.it("moves a folder with its contents") callback {
+            sub = string.concat(d, "/macae-trash-folder")
+            _m = fs.create_dir(sub)
+            _w = fs.write(string.concat(sub, "/inner.txt"), "x")
+            where, err = trash.item(sub)
+            spec.assert_str_eq(err, "", "trashed")
+            spec.assert_false(fs.exists(sub), "gone")
+            spec.assert_true(fs.exists(string.concat(where, "/inner.txt")), "contents came along")
+            _c = fs.remove_tree(where)
+        }
+        spec.it("says why when there is nothing to trash") callback {
+            where, err = trash.item(string.concat(d, "/never-existed"))
+            spec.assert_str_eq(where, "", "no result")
+            spec.assert_true(string.length(err) > 0, "an error")
+        }
+    }
+    _r = fs.remove_tree(d)
+    return spec.run_summary(fw)
+}

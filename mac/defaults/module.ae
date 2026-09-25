@@ -1,0 +1,44 @@
+// mac.defaults — app settings where macOS keeps them: NSUserDefaults, one
+// suite (a reverse-DNS name) per app, stored in
+// ~/Library/Preferences/<suite>.plist and readable with `defaults read`.
+//
+//   defaults.set_bool("org.example.opendisk", "show_prompt", 1)
+//   if defaults.has("org.example.opendisk", "show_prompt") == 1 { ... }
+//   v = defaults.get_bool("org.example.opendisk", "show_prompt")
+//
+// A missing key reads as "", 0, 0.0 or false; has() tells absence apart
+// from a stored zero.
+@source("defaults.m")
+@link("-Wl,-framework,Foundation")
+
+exports(has, get_string, get_int, get_float, get_bool, set_string, set_int,
+    set_float, set_bool, remove, remove_suite, sync, available)
+
+extern macae_defaults_has(suite: string, key: string) -> int
+extern macae_defaults_get_string(suite: string, key: string) -> string @heap
+extern macae_defaults_get_int(suite: string, key: string) -> long
+extern macae_defaults_get_float(suite: string, key: string) -> float
+extern macae_defaults_get_bool(suite: string, key: string) -> int
+extern macae_defaults_set_string(suite: string, key: string, v: string)
+extern macae_defaults_set_int(suite: string, key: string, v: long)
+extern macae_defaults_set_float(suite: string, key: string, v: float)
+extern macae_defaults_set_bool(suite: string, key: string, v: int)
+extern macae_defaults_remove(suite: string, key: string)
+extern macae_defaults_remove_suite(suite: string)
+extern macae_defaults_sync(suite: string) -> int
+
+available() -> int { return 1 }
+has(suite: string, key: string) -> int { return macae_defaults_has(suite, key) }
+get_string(suite: string, key: string) -> string { return macae_defaults_get_string(suite, key) }
+get_int(suite: string, key: string) -> long { return macae_defaults_get_int(suite, key) }
+get_float(suite: string, key: string) -> float { return macae_defaults_get_float(suite, key) }
+get_bool(suite: string, key: string) -> int { return macae_defaults_get_bool(suite, key) }
+set_string(suite: string, key: string, v: string) { macae_defaults_set_string(suite, key, v) }
+set_int(suite: string, key: string, v: long) { macae_defaults_set_int(suite, key, v) }
+set_float(suite: string, key: string, v: float) { macae_defaults_set_float(suite, key, v) }
+set_bool(suite: string, key: string, v: int) { macae_defaults_set_bool(suite, key, v) }
+remove(suite: string, key: string) { macae_defaults_remove(suite, key) }
+// Forget the whole suite (its plist is deleted).
+remove_suite(suite: string) { macae_defaults_remove_suite(suite) }
+// Write pending changes now; they are written anyway within moments.
+sync(suite: string) -> int { return macae_defaults_sync(suite) }

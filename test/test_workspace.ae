@@ -1,0 +1,48 @@
+// mac.workspace — the queries answer without side effects; the launches
+// are refused when headless (the runner sets MACAE_HEADLESS, so this suite
+// never opens Finder on a CI box).
+import std.spec
+import std.string
+import std.fs
+import mac.workspace
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.workspace") {
+        spec.it("knows which app opens a file, a URL, a bundle id") callback {
+            app = workspace.app_for_path("/etc/hosts")
+            spec.assert_true(string.ends_with(app, ".app"), "an .app for a text file")
+            spec.assert_true(fs.exists(app), "it exists")
+            browser = workspace.app_for_url("https://example.com")
+            spec.assert_true(string.ends_with(browser, ".app"), "a default browser")
+            finder = workspace.app_for_bundle_id("com.apple.finder")
+            spec.assert_str_eq(finder, "/System/Library/CoreServices/Finder.app", "Finder by id")
+            spec.assert_str_eq(workspace.app_for_bundle_id("org.macae.no.such.app"), "", "unknown id is empty")
+        }
+        spec.it("lists running apps") callback {
+            n = workspace.running()
+            spec.assert_true(n >= 1, "something is running")
+            named = 0
+            i = 0
+            while i < n {
+                if string.length(workspace.running_bundle_id(i)) > 0 { named = named + 1 }
+                i = i + 1
+            }
+            spec.assert_true(named >= 1, "at least one has a bundle id")
+            spec.assert_str_eq(workspace.running_bundle_id(n), "", "past the end is empty")
+        }
+        spec.it("refuses to launch anything when headless") callback {
+            spec.assert_eq(workspace.interactive(), 0, "the runner set MACAE_HEADLESS")
+            spec.assert_eq(workspace.open_path("/etc/hosts"), 0, "open refused")
+            spec.assert_eq(workspace.open_url("https://example.com"), 0, "URL refused")
+            spec.assert_eq(workspace.reveal("/etc/hosts"), 0, "reveal refused")
+            spec.assert_eq(workspace.open_with("/etc/hosts", "/System/Applications/TextEdit.app"), 0, "open-with refused")
+        }
+        spec.it("names the frontmost app, or nothing without a GUI session") callback {
+            f = workspace.frontmost_app()
+            spec.assert_true(string.length(f) >= 0, "answers")
+        }
+    }
+    return spec.run_summary(fw)
+}

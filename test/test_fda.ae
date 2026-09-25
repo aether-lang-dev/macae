@@ -1,0 +1,29 @@
+// mac.fda — the probe gives one of its three answers, the settings URL is
+// Apple's, and opening Settings is refused when headless.
+import std.spec
+import std.string
+import mac.fda
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.fda") {
+        spec.it("answers granted, denied or undetermined") callback {
+            r = fda.probe()
+            ok = 0
+            if r == fda.GRANTED { ok = 1 }
+            if r == fda.DENIED { ok = 1 }
+            if r == fda.UNDETERMINED { ok = 1 }
+            spec.assert_eq(ok, 1, "one of the three (got ${r})")
+            spec.assert_eq(fda.probe(), r, "and the same answer twice")
+        }
+        spec.it("points at the Full Disk Access pane") callback {
+            spec.assert_str_eq(fda.settings_url(),
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles", "Apple's URL")
+        }
+        spec.it("does not open System Settings when headless") callback {
+            spec.assert_eq(fda.open_settings(), 0, "refused")
+        }
+    }
+    return spec.run_summary(fw)
+}

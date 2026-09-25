@@ -1,0 +1,36 @@
+// mac.power — an assertion can be taken and released, and the power source
+// is one of the three IOKit names.
+import std.spec
+import std.string
+import mac.power
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.power") {
+        spec.it("keeps the system awake, then lets it sleep") callback {
+            a = power.keep_awake("macae test")
+            spec.assert_true(a > 0, "an assertion id")
+            spec.assert_eq(power.release(a), 1, "released")
+            spec.assert_eq(power.release(a), 0, "releasing twice fails")
+            spec.assert_eq(power.release(0), 0, "releasing nothing fails")
+        }
+        spec.it("keeps the display awake too") callback {
+            a = power.keep_display_awake("macae test")
+            spec.assert_true(a > 0, "an assertion id")
+            spec.assert_eq(power.release(a), 1, "released")
+        }
+        spec.it("names the power source and the battery level") callback {
+            s = power.source()
+            ok = 0
+            if string.equals(s, "AC Power") == 1 { ok = 1 }
+            if string.equals(s, "Battery Power") == 1 { ok = 1 }
+            if string.equals(s, "UPS Power") == 1 { ok = 1 }
+            spec.assert_eq(ok, 1, "one of IOKit's names (got '${s}')")
+            p = power.battery_percent()
+            spec.assert_true(p >= -1, "≥ -1")
+            spec.assert_true(p <= 100, "≤ 100")
+        }
+    }
+    return spec.run_summary(fw)
+}

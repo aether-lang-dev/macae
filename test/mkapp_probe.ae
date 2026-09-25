@@ -1,0 +1,10 @@
+// The program test/test_mkapp.sh wraps as a .app: it prints what mac.bundle
+// sees, so the test can check that the bundle gave it an identity.
+import mac.bundle
+main() {
+    println("bundled=${bundle.is_bundled()}")
+    println("id=${bundle.identifier()}")
+    println("name=${bundle.name()}")
+    println("version=${bundle.version()}")
+    println("min=${bundle.info("LSMinimumSystemVersion")}")
+}

@@ -1,0 +1,28 @@
+// mac.bundle — a bare binary has a path but no identity; a system app on
+// disk has both. (The bundled case — this same program wrapped by
+// tools/mkapp.sh — is test/test_mkapp.sh.)
+import std.spec
+import std.string
+import std.fs
+import mac.bundle
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.bundle") {
+        spec.it("a bare binary: a path and an executable, no identifier") callback {
+            spec.assert_true(fs.exists(bundle.path()), "the bundle path exists")
+            spec.assert_true(fs.exists(bundle.executable()), "the executable exists")
+            spec.assert_str_eq(bundle.identifier(), "", "no identifier")
+            spec.assert_eq(bundle.is_bundled(), 0, "not bundled")
+            spec.assert_str_eq(bundle.info("CFBundleIdentifier"), "", "no Info.plist value")
+        }
+        spec.it("reads another app's identity") callback {
+            spec.assert_str_eq(bundle.id_of("/System/Library/CoreServices/Finder.app"), "com.apple.finder", "Finder's id")
+            spec.assert_str_eq(bundle.name_of("/System/Library/CoreServices/Finder.app"), "Finder", "Finder's name")
+            spec.assert_true(string.length(bundle.version_of("/System/Library/CoreServices/Finder.app")) > 0, "a version")
+            spec.assert_str_eq(bundle.id_of("/no/such.app"), "", "unknown app is empty")
+        }
+    }
+    return spec.run_summary(fw)
+}

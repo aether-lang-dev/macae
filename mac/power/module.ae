@@ -1,0 +1,32 @@
+// mac.power — keep the Mac awake while work runs, and know what powers it.
+//
+//   a = power.keep_awake("Scanning the disk")   // no idle sleep until…
+//   ...
+//   power.release(a)
+//
+//   power.source()            // "AC Power" | "Battery Power" | "UPS Power"
+//   power.battery_percent()   // 0..100, -1 with no battery
+//
+// An assertion dies with the process; release it anyway when the work
+// ends, so the Mac can sleep while the app idles.
+@source("power.c")
+@link("-Wl,-framework,IOKit")
+@link("-Wl,-framework,CoreFoundation")
+
+exports(keep_awake, keep_display_awake, release, source, battery_percent, available)
+
+extern macae_power_assert(kind: int, reason: string) -> long
+extern macae_power_release(id: long) -> int
+extern macae_power_source() -> string @heap
+extern macae_power_battery_percent() -> int
+
+available() -> int { return 1 }
+
+// Prevent idle SYSTEM sleep (the display may still sleep). Returns the
+// assertion, 0 on failure. `reason` is what Activity Monitor shows.
+keep_awake(reason: string) -> long { return macae_power_assert(0, reason) }
+// Prevent idle DISPLAY sleep too.
+keep_display_awake(reason: string) -> long { return macae_power_assert(1, reason) }
+release(assertion: long) -> int { return macae_power_release(assertion) }
+source() -> string { return macae_power_source() }
+battery_percent() -> int { return macae_power_battery_percent() }

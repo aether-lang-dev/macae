@@ -1,0 +1,38 @@
+// mac.keychain — a secret round-trips through the login keychain and is
+// deleted again. Skipped, saying so, where the process has no usable
+// keychain (some CI and ssh sessions).
+import std.spec
+import std.string
+import mac.keychain
+
+const SERVICE: string = "org.macae.test-keychain"
+
+main() {
+    fw = spec.init()
+    avail = keychain.available()
+    if spec.skip_all_if(fw, avail == 0, "no usable keychain in this session") == 1 {
+        return spec.run_summary(fw)
+    }
+    _cleanup = keychain.delete(SERVICE, "token")
+
+    spec.describe(fw, "mac.keychain") {
+        spec.it("stores, reads back, replaces and deletes a secret") callback {
+            spec.assert_str_eq(keychain.set(SERVICE, "token", "s3cr3t"), "", "stored")
+            v, err = keychain.get(SERVICE, "token")
+            spec.assert_str_eq(err, "", "read ok")
+            spec.assert_str_eq(v, "s3cr3t", "the secret")
+            spec.assert_str_eq(keychain.set(SERVICE, "token", "new-one"), "", "replaced")
+            v2, _e2 = keychain.get(SERVICE, "token")
+            spec.assert_str_eq(v2, "new-one", "the new secret")
+            spec.assert_str_eq(keychain.delete(SERVICE, "token"), "", "deleted")
+        }
+        spec.it("reports a missing item as not found") callback {
+            v, err = keychain.get(SERVICE, "token")
+            spec.assert_str_eq(v, "", "no value")
+            spec.assert_str_eq(err, "not found", "not found")
+            spec.assert_str_eq(keychain.delete(SERVICE, "token"), "not found", "deleting it again")
+            spec.assert_true(string.length(keychain.status_text(keychain.NOT_FOUND)) > 0, "Security names the status")
+        }
+    }
+    return spec.run_summary(fw)
+}

@@ -1,0 +1,31 @@
+// mac.iopolicy — set a policy, read it back, restore it.
+import std.spec
+import std.string
+import mac.iopolicy
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.iopolicy") {
+        spec.it("throttles this thread and reads it back") callback {
+            was = iopolicy.get(iopolicy.SCOPE_THREAD)
+            spec.assert_str_eq(iopolicy.set(iopolicy.THROTTLE, iopolicy.SCOPE_THREAD), "", "set")
+            spec.assert_eq(iopolicy.get(iopolicy.SCOPE_THREAD), iopolicy.THROTTLE, "now throttled")
+            spec.assert_str_eq(iopolicy.name(iopolicy.get(iopolicy.SCOPE_THREAD)), "throttle", "named")
+            spec.assert_str_eq(iopolicy.set(was, iopolicy.SCOPE_THREAD), "", "restored")
+            spec.assert_eq(iopolicy.get(iopolicy.SCOPE_THREAD), was, "back as it was")
+        }
+        spec.it("throttles the whole process and restores it") callback {
+            was = iopolicy.get(iopolicy.SCOPE_PROCESS)
+            spec.assert_str_eq(iopolicy.set(iopolicy.THROTTLE, iopolicy.SCOPE_PROCESS), "", "set")
+            spec.assert_eq(iopolicy.get(iopolicy.SCOPE_PROCESS), iopolicy.THROTTLE, "throttled")
+            _r = iopolicy.set(was, iopolicy.SCOPE_PROCESS)
+            spec.assert_eq(iopolicy.get(iopolicy.SCOPE_PROCESS), was, "restored")
+        }
+        spec.it("refuses a policy that does not exist") callback {
+            spec.assert_true(string.length(iopolicy.set(99, iopolicy.SCOPE_THREAD)) > 0, "an error")
+            spec.assert_str_eq(iopolicy.name(99), "unknown", "unknown name")
+        }
+    }
+    return spec.run_summary(fw)
+}

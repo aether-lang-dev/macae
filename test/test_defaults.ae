@@ -1,0 +1,44 @@
+// mac.defaults — settings round-trip through NSUserDefaults in a suite of
+// their own, and the suite is removed afterwards.
+import std.spec
+import std.string
+import mac.defaults
+
+const SUITE: string = "org.macae.test-defaults"
+
+main() {
+    fw = spec.init()
+    defaults.remove_suite(SUITE)
+
+    spec.describe(fw, "mac.defaults") {
+        spec.it("stores and reads every type") callback {
+            defaults.set_string(SUITE, "name", "Ada")
+            defaults.set_int(SUITE, "count", 42)
+            defaults.set_float(SUITE, "ratio", 0.25)
+            defaults.set_bool(SUITE, "flag", 1)
+            spec.assert_str_eq(defaults.get_string(SUITE, "name"), "Ada", "string")
+            spec.assert_eq_long(defaults.get_int(SUITE, "count"), 42, "int")
+            spec.assert_true(defaults.get_float(SUITE, "ratio") == 0.25, "float")
+            spec.assert_eq(defaults.get_bool(SUITE, "flag"), 1, "bool")
+        }
+        spec.it("tells absence from a stored zero") callback {
+            spec.assert_eq(defaults.has(SUITE, "count"), 1, "count is there")
+            spec.assert_eq(defaults.has(SUITE, "never"), 0, "never is not")
+            spec.assert_str_eq(defaults.get_string(SUITE, "never"), "", "absent string is empty")
+            spec.assert_eq_long(defaults.get_int(SUITE, "never"), 0, "absent int is 0")
+            defaults.set_int(SUITE, "zero", 0)
+            spec.assert_eq(defaults.has(SUITE, "zero"), 1, "a stored 0 is present")
+        }
+        spec.it("replaces, removes, and forgets the suite") callback {
+            defaults.set_string(SUITE, "name", "Grace")
+            spec.assert_str_eq(defaults.get_string(SUITE, "name"), "Grace", "replaced")
+            defaults.remove(SUITE, "name")
+            spec.assert_eq(defaults.has(SUITE, "name"), 0, "removed")
+            spec.assert_eq(defaults.sync(SUITE), 1, "synced")
+            defaults.remove_suite(SUITE)
+            spec.assert_eq(defaults.has(SUITE, "count"), 0, "suite forgotten")
+        }
+    }
+    defaults.remove_suite(SUITE)
+    return spec.run_summary(fw)
+}

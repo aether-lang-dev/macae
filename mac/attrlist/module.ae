@@ -1,0 +1,65 @@
+// mac.attrlist — read a whole directory in one pass: every entry's name,
+// kind, file id, link count and allocated size, from getattrlistbulk(2),
+// with no stat(2) per entry. This is how OpenDisk scans a terabyte in
+// seconds; a scanner built on std.dir + fs.file_stat pays a syscall per file.
+//
+//   h, err = attrlist.read("/Users/me/Downloads")
+//   i = 0
+//   while i < attrlist.count(h) {
+//       if attrlist.kind(h, i) == attrlist.KIND_FILE {
+//           bytes = attrlist.alloc(h, i)        // what it takes on disk
+//       }
+//       i = i + 1
+//   }
+//   attrlist.free(h)
+//
+// Symlinks are entries of KIND_LINK, never followed. Hard links: nlink > 1
+// and the same fileid on one device mean one file under several names.
+@source("attrlist.c")
+
+exports(read, count, name, kind, fileid, nlink, alloc, size, free, available,
+    KIND_FILE, KIND_DIR, KIND_LINK, KIND_OTHER)
+
+import std.string
+
+extern macae_attrlist_read(dir: string) -> ptr
+extern macae_attrlist_count(h: ptr) -> int
+extern macae_attrlist_errno(h: ptr) -> int
+extern macae_attrlist_name(h: ptr, i: int) -> string @heap
+extern macae_attrlist_kind(h: ptr, i: int) -> int
+extern macae_attrlist_fileid(h: ptr, i: int) -> long
+extern macae_attrlist_nlink(h: ptr, i: int) -> int
+extern macae_attrlist_alloc(h: ptr, i: int) -> long
+extern macae_attrlist_size(h: ptr, i: int) -> long
+extern macae_attrlist_free(h: ptr)
+
+// std.fs's kind numbering.
+const KIND_FILE: int = 1
+const KIND_DIR: int = 2
+const KIND_LINK: int = 3
+const KIND_OTHER: int = 4
+
+available() -> int { return 1 }
+
+// (listing, "") or (null, error). A listing is always freed with free().
+read(dir: string) -> {
+    h = macae_attrlist_read(dir)
+    if h == null { return null, "out of memory" }
+    e = macae_attrlist_errno(h)
+    if e != 0 {
+        macae_attrlist_free(h)
+        return null, "cannot read directory (errno ${e})"
+    }
+    return h, ""
+}
+
+count(h: ptr) -> int { return macae_attrlist_count(h) }
+name(h: ptr, i: int) -> string { return macae_attrlist_name(h, i) }
+kind(h: ptr, i: int) -> int { return macae_attrlist_kind(h, i) }
+fileid(h: ptr, i: int) -> long { return macae_attrlist_fileid(h, i) }
+nlink(h: ptr, i: int) -> int { return macae_attrlist_nlink(h, i) }
+// Bytes allocated on disk (0 for a directory).
+alloc(h: ptr, i: int) -> long { return macae_attrlist_alloc(h, i) }
+// Logical length (0 for a directory).
+size(h: ptr, i: int) -> long { return macae_attrlist_size(h, i) }
+free(h: ptr) { macae_attrlist_free(h) }

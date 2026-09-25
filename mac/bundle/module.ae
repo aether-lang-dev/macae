@@ -1,0 +1,42 @@
+// mac.bundle — the .app this process lives in: its path, identifier, name,
+// version and resources; and the same facts about any .app on disk. A bare
+// binary has no identifier and is_bundled() is 0.
+//
+//   if bundle.is_bundled() == 1 {
+//       icon = bundle.resource_path() + "/AppIcon.icns"
+//   }
+//   bundle.id_of("/Applications/Safari.app")   // "com.apple.Safari"
+//
+// tools/mkapp.sh turns an Aether binary into a .app (Info.plist, icon,
+// ad-hoc code signature) so that these answer for it.
+@source("bundle.m")
+@link("-Wl,-framework,Foundation")
+
+exports(path, identifier, name, version, resource_path, executable, info,
+    is_bundled, id_of, name_of, version_of, available)
+
+extern macae_bundle_path() -> string @heap
+extern macae_bundle_identifier() -> string @heap
+extern macae_bundle_resource_path() -> string @heap
+extern macae_bundle_executable() -> string @heap
+extern macae_bundle_name() -> string @heap
+extern macae_bundle_version() -> string @heap
+extern macae_bundle_info(key: string) -> string @heap
+extern macae_bundle_is_bundled() -> int
+extern macae_bundle_id_of(app: string) -> string @heap
+extern macae_bundle_name_of(app: string) -> string @heap
+extern macae_bundle_version_of(app: string) -> string @heap
+
+available() -> int { return 1 }
+path() -> string { return macae_bundle_path() }
+identifier() -> string { return macae_bundle_identifier() }
+name() -> string { return macae_bundle_name() }
+version() -> string { return macae_bundle_version() }
+resource_path() -> string { return macae_bundle_resource_path() }
+executable() -> string { return macae_bundle_executable() }
+// Any Info.plist value of this bundle, as text ("" when absent).
+info(key: string) -> string { return macae_bundle_info(key) }
+is_bundled() -> int { return macae_bundle_is_bundled() }
+id_of(app: string) -> string { return macae_bundle_id_of(app) }
+name_of(app: string) -> string { return macae_bundle_name_of(app) }
+version_of(app: string) -> string { return macae_bundle_version_of(app) }

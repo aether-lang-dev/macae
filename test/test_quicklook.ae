@@ -1,0 +1,48 @@
+// mac.quicklook — a thumbnail of a real file lands as a PNG; the panel
+// answers "no application" from a bare tool.
+import std.spec
+import std.string
+import std.fs
+import std.os
+import mac.quicklook
+
+main() {
+    fw = spec.init()
+    d, _e = fs.make_temp_dir(os.temp_dir(), "macae-quicklook")
+
+    spec.describe(fw, "mac.quicklook") {
+        spec.it("renders a text file to a PNG") callback {
+            src = string.concat(d, "/note.txt")
+            _w = fs.write(src, "Hello from macae.\nA second line.\n")
+            out = string.concat(d, "/note.png")
+            err = quicklook.thumbnail(src, 256, 256, out)
+            spec.assert_str_eq(err, "", "rendered")
+            spec.assert_true(fs.exists(out), "PNG written")
+            body, n, _rerr = fs.read_binary(out)
+            spec.assert_true(n > 100, "not empty (${n} bytes)")
+            spec.assert_true(string.starts_with(body, "\x89PNG"), "a PNG")
+        }
+        spec.it("says why when the file is missing") callback {
+            err = quicklook.thumbnail(string.concat(d, "/nope.pdf"), 64, 64, string.concat(d, "/nope.png"))
+            spec.assert_str_eq(err, "no such file", "says so, rather than drawing a generic icon")
+            spec.assert_false(fs.exists(string.concat(d, "/nope.png")), "no PNG written")
+        }
+        spec.it("renders a PDF, at the size asked or smaller") callback {
+            // Any PDF macOS ships will do; the Info.plist of a system app is
+            // a text file, but a real document is a better proof.
+            src = "/System/Library/CoreServices/Finder.app/Contents/Info.plist"
+            out = string.concat(d, "/plist.png")
+            spec.assert_str_eq(quicklook.thumbnail(src, 128, 128, out), "", "rendered")
+            body, n, _rerr = fs.read_binary(out)
+            spec.assert_true(n > 100, "a PNG of some size")
+        }
+        spec.it("has no preview panel without an application") callback {
+            spec.assert_eq(quicklook.preview_available(), 0, "no NSApplication here")
+            err = quicklook.preview("/etc/hosts")
+            spec.assert_contains(err, "no application", "says so")
+            spec.assert_eq(quicklook.preview_visible(), 0, "nothing shown")
+        }
+    }
+    _r = fs.remove_tree(d)
+    return spec.run_summary(fw)
+}

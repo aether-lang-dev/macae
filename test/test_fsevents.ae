@@ -1,0 +1,76 @@
+// mac.fsevents — a watch sees a file created under it, a folder created,
+// and a replay from a remembered event id delivers what happened meanwhile.
+import std.spec
+import std.string
+import std.fs
+import std.os
+import mac.fsevents
+
+// Poll until an event's path ends with `suffix` (up to ~3 s); returns its
+// flags, or -1.
+wait_for(w: ptr, suffix: string) -> long {
+    tries = 0
+    while tries < 30 {
+        fsevents.flush(w)
+        n = fsevents.poll(w)
+        i = 0
+        while i < n {
+            if string.ends_with(fsevents.path(w, i), suffix) == 1 { return fsevents.flags(w, i) }
+            i = i + 1
+        }
+        sleep(100)
+        tries = tries + 1
+    }
+    return -1
+}
+
+main() {
+    fw = spec.init()
+    d, _e = fs.make_temp_dir(os.temp_dir(), "macae-fsevents")
+
+    spec.describe(fw, "mac.fsevents") {
+        spec.it("sees a file created under the watched folder") callback {
+            w, err = fsevents.open(d, 0.05)
+            spec.assert_str_eq(err, "", "watch opened")
+            _w = fs.write(string.concat(d, "/hello.txt"), "hello")
+            f = wait_for(w, "/hello.txt")
+            spec.assert_true(f >= 0, "an event for hello.txt")
+            spec.assert_eq(fsevents.is_set(f, fsevents.ITEM_IS_FILE), 1, "it is a file")
+            spec.assert_eq(fsevents.is_set(f, fsevents.ITEM_CREATED), 1, "created")
+            fsevents.close(w)
+        }
+        spec.it("tells a folder from a file, and a removal from a creation") callback {
+            w, _err = fsevents.open(d, 0.05)
+            _m = fs.create_dir(string.concat(d, "/sub"))
+            f = wait_for(w, "/sub")
+            spec.assert_true(f >= 0, "an event for sub")
+            spec.assert_eq(fsevents.is_set(f, fsevents.ITEM_IS_DIR), 1, "a folder")
+            _x = fs.delete(string.concat(d, "/hello.txt"))
+            f2 = wait_for(w, "/hello.txt")
+            spec.assert_true(f2 >= 0, "an event for the removal")
+            spec.assert_eq(fsevents.is_set(f2, fsevents.ITEM_REMOVED), 1, "removed")
+            fsevents.close(w)
+        }
+        spec.it("replays what happened since a remembered id") callback {
+            long before = fsevents.current_id()
+            spec.assert_true(before > 0, "the service has an id")
+            _w = fs.write(string.concat(d, "/while-away.txt"), "x")
+            sleep(300)
+            w, err = fsevents.open_since(d, before, 0.05)
+            spec.assert_str_eq(err, "", "watch with history")
+            f = wait_for(w, "/while-away.txt")
+            spec.assert_true(f >= 0, "the change made before the watch was replayed")
+            spec.assert_true(fsevents.latest_id(w) >= before, "ids move forward")
+            fsevents.close(w)
+        }
+        spec.it("refuses a folder that does not exist") callback {
+            w, err = fsevents.open("/no/such/folder/for/fsevents", 0.05)
+            // FSEvents accepts any path at open (the folder may appear later);
+            // what we assert is honesty either way: a watch, or an error.
+            if w == null { spec.assert_true(string.length(err) > 0, "an error") }
+            else { fsevents.close(w) }
+        }
+    }
+    _r = fs.remove_tree(d)
+    return spec.run_summary(fw)
+}

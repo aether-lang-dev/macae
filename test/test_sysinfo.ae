@@ -1,0 +1,47 @@
+// mac.sysinfo — the facts this Mac reports about itself are consistent
+// with each other and with what a shell would print.
+import std.spec
+import std.string
+import std.os
+import mac.sysinfo
+
+main() {
+    fw = spec.init()
+
+    spec.describe(fw, "mac.sysinfo") {
+        spec.it("names the model and the OS") callback {
+            spec.assert_true(string.length(sysinfo.model()) > 0, "hw.model present")
+            v = sysinfo.os_version()
+            spec.assert_true(string.length(v) >= 2, "an OS version")
+            spec.assert_contains(v, ".", "major.minor")
+            spec.assert_true(string.length(sysinfo.os_build()) > 0, "a build")
+        }
+        spec.it("counts CPUs and memory") callback {
+            n = sysinfo.cpu_count()
+            spec.assert_true(n >= 1, "at least one CPU")
+            spec.assert_true(sysinfo.memory_bytes() > 1073741824, "more than 1 GiB of RAM")
+            spec.assert_true(sysinfo.page_size() >= 4096, "a page is 4 KiB or 16 KiB")
+            spec.assert_true(sysinfo.boot_time() > 0, "booted at some time")
+        }
+        spec.it("knows Apple silicon from Intel, consistently with os.arch()") callback {
+            arch = os.arch()
+            silicon = sysinfo.apple_silicon()
+            if string.equals(arch, "arm64") == 1 {
+                spec.assert_eq(silicon, 1, "arm64 build on Apple silicon")
+                spec.assert_contains(sysinfo.cpu_brand(), "Apple", "an Apple CPU")
+                spec.assert_eq(sysinfo.translated(), 0, "native, not Rosetta")
+            } else {
+                // an x86_64 build: Intel Mac, or Rosetta on Apple silicon
+                if silicon == 1 { spec.assert_eq(sysinfo.translated(), 1, "x86_64 on Apple silicon is Rosetta") }
+                else { spec.assert_eq(sysinfo.translated(), 0, "Intel is not translated") }
+            }
+        }
+        spec.it("core split adds up when the machine has one") callback {
+            p = sysinfo.perf_cores()
+            e = sysinfo.eff_cores()
+            if p > 0 { spec.assert_true(p + e <= sysinfo.cpu_count(), "P + E ≤ total") }
+            else { spec.assert_eq(e, 0, "no split: both 0") }
+        }
+    }
+    return spec.run_summary(fw)
+}

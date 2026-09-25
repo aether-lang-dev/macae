@@ -1,0 +1,75 @@
+// mac.workspace — NSWorkspace: open a file in its app, reveal it in Finder
+// ("Show in Finder"), open it with a chosen app, ask which app WOULD open a
+// file or URL, and what is running. No NSApplication of our own needed.
+//
+// The three verbs that launch something (open_path, open_url, reveal,
+// open_with) are refused under MACAE_HEADLESS / AETHER_UI_HEADLESS with
+// interactive() == 0 — a CI box must never pop Finder. The queries
+// (app_for_*, frontmost, running) have no side effect and always work.
+//
+//   ok = workspace.open_path("/Users/me/report.pdf")   // Preview opens it
+//   workspace.reveal("/Users/me/report.pdf")           // Finder selects it
+//   app = workspace.app_for_path("/Users/me/report.pdf") // ".../Preview.app"
+@source("workspace.m")
+@link("-Wl,-framework,AppKit")
+
+exports(open_path, open_url, reveal, open_with, app_for_path, app_for_url,
+    app_for_bundle_id, frontmost_app, running, running_bundle_id, running_name,
+    interactive, available)
+
+import std.string
+import std.os (os_getenv)
+
+extern macae_workspace_open_path(path: string) -> int
+extern macae_workspace_open_url(url: string) -> int
+extern macae_workspace_reveal(path: string)
+extern macae_workspace_open_with(path: string, app: string) -> int
+extern macae_workspace_app_for_path(path: string) -> string @heap
+extern macae_workspace_app_for_url(url: string) -> string @heap
+extern macae_workspace_app_for_bundle_id(bid: string) -> string @heap
+extern macae_workspace_frontmost_app() -> string @heap
+extern macae_workspace_running() -> int
+extern macae_workspace_running_bundle_id(i: int) -> string @heap
+extern macae_workspace_running_name(i: int) -> string @heap
+
+available() -> int { return 1 }
+
+// 0 when launching apps is refused (MACAE_HEADLESS or AETHER_UI_HEADLESS set).
+interactive() -> int {
+    if os_getenv("MACAE_HEADLESS") != null { return 0 }
+    if os_getenv("AETHER_UI_HEADLESS") != null { return 0 }
+    return 1
+}
+
+// Open the file in its default app. 1 = opened, 0 = refused or failed.
+open_path(path: string) -> int {
+    if interactive() == 0 { return 0 }
+    return macae_workspace_open_path(path)
+}
+// Open a URL (https://, mailto:, x-apple.systempreferences:…).
+open_url(url: string) -> int {
+    if interactive() == 0 { return 0 }
+    return macae_workspace_open_url(url)
+}
+// "Show in Finder": a Finder window with the item selected.
+reveal(path: string) -> int {
+    if interactive() == 0 { return 0 }
+    macae_workspace_reveal(path)
+    return 1
+}
+// Open the file with the app bundle at `app` (a .app path).
+open_with(path: string, app: string) -> int {
+    if interactive() == 0 { return 0 }
+    return macae_workspace_open_with(path, app)
+}
+// The .app that would open the file / URL / bundle id, or "". No side effect.
+app_for_path(path: string) -> string { return macae_workspace_app_for_path(path) }
+app_for_url(url: string) -> string { return macae_workspace_app_for_url(url) }
+app_for_bundle_id(bid: string) -> string { return macae_workspace_app_for_bundle_id(bid) }
+// The frontmost app's name, "" when there is no GUI session.
+frontmost_app() -> string { return macae_workspace_frontmost_app() }
+// A snapshot of the running apps: their count; then each one's bundle id
+// and name by index.
+running() -> int { return macae_workspace_running() }
+running_bundle_id(i: int) -> string { return macae_workspace_running_bundle_id(i) }
+running_name(i: int) -> string { return macae_workspace_running_name(i) }

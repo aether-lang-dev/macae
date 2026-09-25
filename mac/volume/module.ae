@@ -1,0 +1,90 @@
+// mac.volume — a volume's capacity and identity the way Finder counts it.
+// statvfs sees free blocks; macOS also has PURGEABLE space (caches, local
+// snapshots, iCloud-evicted files) that it will clear when an app needs
+// room. `important` is what an important write could get, purgeable
+// included — the number Finder shows — and `available` is what is free
+// right now. purgeable() is the difference. Where a volume reports no
+// "important" figure, important() falls back to available and
+// reports_purgeable() says so.
+//
+//   if volume.read("/") == 1 {
+//       println("${volume.name()}: ${volume.important()} of ${volume.total()}")
+//   }
+//   n = volume.mounted()
+//   ... volume.mounted_path(i) for i in 0..n
+@source("volume.m")
+@link("-Wl,-framework,Foundation")
+
+exports(read, total, available_bytes, important, reports_purgeable, opportunistic, purgeable, used,
+    name, format, mount_point, error, is_removable, is_ejectable, is_internal,
+    is_browsable, is_root, is_readonly, mounted, mounted_path, available)
+
+extern macae_volume_try(path: string) -> int
+extern macae_volume_total() -> long
+extern macae_volume_available() -> long
+extern macae_volume_important() -> long
+extern macae_volume_opportunistic() -> long
+extern macae_volume_removable() -> int
+extern macae_volume_ejectable() -> int
+extern macae_volume_internal() -> int
+extern macae_volume_browsable() -> int
+extern macae_volume_root() -> int
+extern macae_volume_readonly() -> int
+extern macae_volume_name() -> string @heap
+extern macae_volume_format() -> string @heap
+extern macae_volume_mount_point() -> string @heap
+extern macae_volume_error() -> string @heap
+extern macae_volume_mounted() -> int
+extern macae_volume_mounted_path(i: int) -> string @heap
+
+available() -> int { return 1 }
+
+// Read the volume holding `path`. 1 and the getters are filled; 0 and
+// error() says why (no such path, not mounted).
+read(path: string) -> int { return macae_volume_try(path) }
+total() -> long { return macae_volume_total() }
+// Free right now.
+available_bytes() -> long { return macae_volume_available() }
+// Free for an important write, purgeable space included — Finder's number.
+// EFFECTIVE: where the system reports no such figure (some virtual and
+// network volumes give 0), this is available_bytes(), and
+// reports_purgeable() is 0 so a caller can tell.
+important() -> long {
+    long v = macae_volume_important()
+    if v <= 0 { return macae_volume_available() }
+    return v
+}
+// 1 when the system gave a real "for important usage" figure.
+reports_purgeable() -> int {
+    if macae_volume_important() > 0 { return 1 }
+    return 0
+}
+// Free for a write the system may refuse when space is tight.
+opportunistic() -> long { return macae_volume_opportunistic() }
+// important − available: what macOS could clear on demand (0 when unknown).
+purgeable() -> long {
+    long p = important() - macae_volume_available()
+    if p < 0 { return 0 }
+    return p
+}
+// total − important: what the volume's contents really occupy.
+used() -> long {
+    long u = macae_volume_total() - important()
+    if u < 0 { return 0 }
+    return u
+}
+name() -> string { return macae_volume_name() }
+format() -> string { return macae_volume_format() }          // "APFS"
+mount_point() -> string { return macae_volume_mount_point() }
+error() -> string { return macae_volume_error() }
+is_removable() -> int { return macae_volume_removable() }
+is_ejectable() -> int { return macae_volume_ejectable() }
+is_internal() -> int { return macae_volume_internal() }
+is_browsable() -> int { return macae_volume_browsable() }
+is_root() -> int { return macae_volume_root() }
+is_readonly() -> int { return macae_volume_readonly() }
+
+// The mounted volumes Finder shows (hidden ones skipped): their count;
+// mounted_path(i) is each one's mount point.
+mounted() -> int { return macae_volume_mounted() }
+mounted_path(i: int) -> string { return macae_volume_mounted_path(i) }

@@ -1,0 +1,103 @@
+// mac.attrlist — one bulk read agrees with std.dir + fs.file_stat, entry
+// by entry, on a folder built for the purpose: a file, a folder, a symlink,
+// and a hard link (which must share its file id and show nlink 2).
+import std.spec
+import std.string
+import std.fs
+import std.dir
+import std.os
+import mac.attrlist
+
+bytes(n: int) -> string {
+    s = "x"
+    while string.length(s) < n { s = string.concat(s, s) }
+    return string.substring(s, 0, n)
+}
+
+index_of_name(h: ptr, name: string) -> int {
+    i = 0
+    while i < attrlist.count(h) {
+        if string.equals(attrlist.name(h, i), name) == 1 { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+main() {
+    fw = spec.init()
+    d, _e = fs.make_temp_dir(os.temp_dir(), "macae-attrlist")
+    _w = fs.write(string.concat(d, "/big.bin"), bytes(20000))
+    _w2 = fs.write(string.concat(d, "/small.txt"), "hi")
+    _m = fs.create_dir(string.concat(d, "/sub"))
+    _l = fs.symlink("big.bin", string.concat(d, "/link"))
+    _h = fs.hard_link(string.concat(d, "/big.bin"), string.concat(d, "/big-again.bin"))
+
+    spec.describe(fw, "mac.attrlist") {
+        spec.it("lists every entry with its kind") callback {
+            h, err = attrlist.read(d)
+            spec.assert_str_eq(err, "", "read ok")
+            spec.assert_eq(attrlist.count(h), 5, "five entries")
+            spec.assert_eq(attrlist.kind(h, index_of_name(h, "big.bin")), attrlist.KIND_FILE, "a file")
+            spec.assert_eq(attrlist.kind(h, index_of_name(h, "sub")), attrlist.KIND_DIR, "a folder")
+            spec.assert_eq(attrlist.kind(h, index_of_name(h, "link")), attrlist.KIND_LINK, "a symlink, not followed")
+            attrlist.free(h)
+        }
+        spec.it("reports sizes: logical, and allocated on disk") callback {
+            h, _err = attrlist.read(d)
+            i = index_of_name(h, "big.bin")
+            spec.assert_eq_long(attrlist.size(h, i), 20000, "logical size")
+            spec.assert_true(attrlist.alloc(h, i) >= 20000, "allocated ≥ logical")
+            spec.assert_true(attrlist.alloc(h, i) % 4096 == 0, "allocated in whole blocks")
+            spec.assert_eq_long(attrlist.size(h, index_of_name(h, "sub")), 0, "a folder has no size here")
+            attrlist.free(h)
+        }
+        spec.it("shows a hard link as one file under two names") callback {
+            h, _err = attrlist.read(d)
+            a = index_of_name(h, "big.bin")
+            b = index_of_name(h, "big-again.bin")
+            spec.assert_eq(attrlist.nlink(h, a), 2, "two links")
+            spec.assert_eq_long(attrlist.fileid(h, a), attrlist.fileid(h, b), "same file id")
+            spec.assert_eq(attrlist.nlink(h, index_of_name(h, "small.txt")), 1, "one link")
+            spec.assert_true(attrlist.fileid(h, a) != attrlist.fileid(h, index_of_name(h, "small.txt")), "different files differ")
+            attrlist.free(h)
+        }
+        spec.it("agrees with std.dir on the names") callback {
+            h, _err = attrlist.read(d)
+            entries, lerr = dir.list(d)
+            spec.assert_str_eq(lerr, "", "dir.list ok")
+            spec.assert_eq(attrlist.count(h), dir.list_count(entries), "same count")
+            i = 0
+            while i < dir.list_count(entries) {
+                nm = string.concat(dir.list_get(entries, i), "")
+                spec.assert_true(index_of_name(h, nm) >= 0, string.concat("attrlist has ", nm))
+                i = i + 1
+            }
+            attrlist.free(h)
+        }
+        spec.it("says why a folder cannot be read") callback {
+            h, err = attrlist.read("/no/such/folder/anywhere")
+            spec.assert_null(h, "no listing")
+            spec.assert_contains(err, "cannot read directory", "an error")
+            h2, err2 = attrlist.read(string.concat(d, "/big.bin"))
+            spec.assert_null(h2, "a file is not a directory")
+            spec.assert_true(string.length(err2) > 0, "says so")
+        }
+        spec.it("follows a symlink given as the ROOT, never as an entry") callback {
+            h, err = attrlist.read("/etc")     // /etc -> /private/etc
+            spec.assert_str_eq(err, "", "a symlinked root reads")
+            spec.assert_true(index_of_name(h, "hosts") >= 0, "its contents are there")
+            attrlist.free(h)
+            h2, _e2 = attrlist.read(d)
+            spec.assert_eq(attrlist.kind(h2, index_of_name(h2, "link")), attrlist.KIND_LINK, "an entry stays a link")
+            attrlist.free(h2)
+        }
+        spec.it("reads a big system folder quickly") callback {
+            h, err = attrlist.read("/usr/bin")
+            spec.assert_str_eq(err, "", "readable")
+            spec.assert_true(attrlist.count(h) > 100, "hundreds of tools")
+            attrlist.free(h)
+        }
+    }
+    _r = fs.remove_tree(d)
+    return spec.run_summary(fw)
+}

@@ -1,0 +1,41 @@
+// mac.sysinfo — what this Mac is: model, OS version, CPU, memory, whether
+// it is Apple silicon, whether this process runs under Rosetta.
+//
+// Plain sysctl(3), no framework. A missing key reads as "" or 0 (an Intel
+// Mac has no performance/efficiency core split; a VM may report no model).
+@source("sysinfo.c")
+
+exports(model, os_version, os_build, cpu_brand, hostname, memory_bytes, cpu_count,
+    perf_cores, eff_cores, apple_silicon, translated, boot_time, page_size, available)
+
+extern macae_sysinfo_model() -> string @heap
+extern macae_sysinfo_os_version() -> string @heap
+extern macae_sysinfo_os_build() -> string @heap
+extern macae_sysinfo_cpu_brand() -> string @heap
+extern macae_sysinfo_hostname() -> string @heap
+extern macae_sysinfo_memory_bytes() -> long
+extern macae_sysinfo_cpu_count() -> int
+extern macae_sysinfo_perf_cores() -> int
+extern macae_sysinfo_eff_cores() -> int
+extern macae_sysinfo_apple_silicon() -> int
+extern macae_sysinfo_translated() -> int
+extern macae_sysinfo_boot_time() -> long
+extern macae_sysinfo_page_size() -> long
+
+available() -> int { return 1 }
+model() -> string { return macae_sysinfo_model() }            // "Mac14,2"
+os_version() -> string { return macae_sysinfo_os_version() }  // "15.1"
+os_build() -> string { return macae_sysinfo_os_build() }      // "24B83"
+cpu_brand() -> string { return macae_sysinfo_cpu_brand() }    // "Apple M2"
+hostname() -> string { return macae_sysinfo_hostname() }
+memory_bytes() -> long { return macae_sysinfo_memory_bytes() }
+cpu_count() -> int { return macae_sysinfo_cpu_count() }
+// Performance / efficiency cores; 0 each where the split does not exist.
+perf_cores() -> int { return macae_sysinfo_perf_cores() }
+eff_cores() -> int { return macae_sysinfo_eff_cores() }
+apple_silicon() -> int { return macae_sysinfo_apple_silicon() }
+// 1 when this process is an x86_64 binary run through Rosetta 2.
+translated() -> int { return macae_sysinfo_translated() }
+// Unix seconds the system booted.
+boot_time() -> long { return macae_sysinfo_boot_time() }
+page_size() -> long { return macae_sysinfo_page_size() }

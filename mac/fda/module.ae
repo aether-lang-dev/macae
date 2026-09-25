@@ -1,0 +1,30 @@
+// mac.fda — Full Disk Access: is this process allowed into the folders TCC
+// guards (Mail, Messages, Safari, other users' homes)? macOS has no API
+// that answers, so this PROBES: it tries to read things TCC protects. A
+// probe that exists and is refused means "denied"; all readable means
+// "granted"; if none of them exist the answer is UNDETERMINED.
+//
+// The grant is per app bundle (or per binary for a bare tool), applied at
+// launch: after the user grants it, the process must be relaunched.
+//
+//   if fda.probe() == fda.DENIED { fda.open_settings() }   // the FDA pane
+@source("fda.c")
+
+exports(probe, settings_url, open_settings, available, GRANTED, DENIED, UNDETERMINED)
+
+import mac.workspace
+
+extern macae_fda_probe() -> int
+
+const GRANTED: int = 1
+const DENIED: int = 0
+const UNDETERMINED: int = 2
+
+// System Settings → Privacy & Security → Full Disk Access.
+const SETTINGS_URL: string = "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
+
+available() -> int { return 1 }
+probe() -> int { return macae_fda_probe() }
+settings_url() -> string { return SETTINGS_URL }
+// Open the Full Disk Access pane (refused when headless, like every launch).
+open_settings() -> int { return workspace.open_url(SETTINGS_URL) }
