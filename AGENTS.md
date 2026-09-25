@@ -57,9 +57,10 @@ or System Settings. Some behaviour depends on the SESSION, not the machine:
   (`root` = nobody logged in). This is why the keychain suite skips there,
   and why `workspace.open_*`, `workspace.reveal` and `quicklook.preview`
   have only been exercised for their refusal paths so far.
-- GitHub's macOS runners are such a session. CI (`.github/workflows/ci.yml`)
-  is green with the keychain suite skipping; that is expected, not a pass
-  by accident.
+- GitHub's `macos-latest` runner is NOT such a session, it turns out: the
+  first CI run (2026-09-25) passed all 14 suites, keychain included, in
+  under a minute after a source build of the toolchain. Where the keychain
+  suite skips is a headless VM reached over ssh.
 
 ## Things that are the way they are for a reason
 

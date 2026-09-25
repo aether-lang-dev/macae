@@ -3,10 +3,10 @@
 # terms"): the SDK comes from Xcode on the runner, never from this repo, so
 # there is no Linux leg to run and none is pretended.
 #
-# The runner is an ssh-like session with no console login, so the keychain
-# suite skips ("no usable keychain in this session") and the GUI paths of
-# workspace/quicklook are exercised only for their headless refusals. That
-# is expected; see AGENTS.md.
+# The runner's login keychain accepts writes, so the keychain suite runs for
+# real there (it skips on a headless VM over ssh). The GUI paths of
+# workspace/quicklook are exercised only for their headless refusals, since
+# ci.sh sets MACAE_HEADLESS. See AGENTS.md.
 name: CI
 
 on:

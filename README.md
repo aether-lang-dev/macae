@@ -81,9 +81,10 @@ opens Finder or System Settings; the workspace and fda suites assert that
 refusal. The trash and keychain suites create and remove their own items. On a
 Mac where the keychain refuses writes, that suite skips and says why.
 
-Last run (macOS 26, Apple silicon VM, Aether 0.717.0, ssh session with no
-console login): 13 suites green, keychain skipped ("no usable keychain in this
-session").
+CI runs `./ci.sh` on GitHub's `macos-latest` runner with Aether pinned to
+0.717.0: all 14 suites green there. On a Mac reached over ssh with no console
+login (a headless VM), the keychain suite skips instead ("no usable keychain
+in this session"); everything else passes.
 
 ## Apple's terms, and why the repo looks the way it does
 
