@@ -63,9 +63,9 @@ own C/ObjC file with `@source` and its frameworks with `@link`, so importing a
 module is all a program does; nothing is configured per program.
 
 The `@link` lines use the single-token spelling `-Wl,-framework,Foundation`
-rather than `-framework Foundation`, because Aether 0.716 separates the two
-tokens when several modules link frameworks (reported to aether as a
-follow-up). Both mean the same thing to clang.
+rather than `-framework Foundation`, because Aether (0.717 included)
+separates the two tokens when several modules link frameworks. Both mean the
+same thing to clang.
 
 ## Tests
 
@@ -81,8 +81,8 @@ opens Finder or System Settings; the workspace and fda suites assert that
 refusal. The trash and keychain suites create and remove their own items. On a
 Mac where the keychain refuses writes, that suite skips and says why.
 
-Last run (macOS 26, Apple silicon VM, Aether 0.716 + its `wip/opendisk-port-fixes`
-branch): 13 suites green, keychain skipped ("no usable keychain in this
+Last run (macOS 26, Apple silicon VM, Aether 0.717.0, ssh session with no
+console login): 13 suites green, keychain skipped ("no usable keychain in this
 session").
 
 ## Apple's terms, and why the repo looks the way it does

@@ -38,19 +38,17 @@ export AETHER_CACHE_DIR=/some/writable/scratch   # only if ~/.aether/cache is re
 test/run_tests.sh            # or ./ci.sh
 ```
 
-`ae` is built in `../aether/build` from branch `wip/opendisk-port-fixes`
-(unpushed). This repo needs that branch for one thing: `test_attrlist.ae`
-and `test_scanner`-style tests use `fs.hard_link`, added there. Everything
-else in `mac/` compiles on stock Aether 0.716. When checking a compiler
-change, use a FRESH `AETHER_CACHE_DIR`: `ae run`'s cache is not keyed on the
-compiler and will happily serve a binary built by the old one.
+`ae` is built in `../aether/build` from `main`. This repo needs Aether
+≥ 0.717.0: `test_attrlist.ae` uses `fs.hard_link`, added there, and the
+modules build with 0.716 otherwise. (Before 0.717 the run cache was not
+keyed on the compiler; it is now, so a rebuilt `aetherc` is picked up.)
 
 ## Things that are the way they are for a reason
 
 - `@link("-Wl,-framework,X")`, not `-framework X`: Aether 0.716 separates the
   two tokens when several modules link frameworks (recorded as follow-up D
-  in `../aether/asks/wip-opendisk-port-fixes-handoff.md`). Keep the
-  single-token spelling until that is fixed upstream.
+  in `../scm/NOTES.md`; not yet filed upstream). Keep the single-token
+  spelling until that is fixed.
 - C symbols are prefixed `macae_<module>_` so any set of modules links into
   one program without collisions. Strings cross to Aether as `strdup`'d
   `@heap` returns; `""` means absent. Multi-value results use the split
@@ -97,8 +95,7 @@ compiler and will happily serve a binary built by the old one.
 
 - `../scm/NOTES.md` — every repo's branch, unpushed commits, dependencies,
   the VM and GitHub unknowns.
-- `../aether/asks/wip-opendisk-port-fixes-handoff.md` — the compiler fixes
-  this repo depends on and the follow-ups found (including the `-framework`
-  one).
+- Aether 0.717.0's changelog — the compiler fixes this repo depends on; the
+  unfiled follow-ups (the `-framework` one included) are in `../scm/NOTES.md`.
 - `/Users/admin/.claude/projects/-Users-admin-scm-aether-ui/memory/` — the
   memory of the session that built this; not loaded here, but readable.
