@@ -2,3 +2,4 @@ target/
 *.o
 *.png
 *.app/
+.DS_Store

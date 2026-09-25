@@ -87,6 +87,9 @@ session").
 
 ## Apple's terms, and why the repo looks the way it does
 
+`NOTICE.md` records the audit of the tree against these terms, file by file,
+and the rule that keeps it clean.
+
 - **Nothing of Apple's is here.** The SDK headers (`AppKit/AppKit.h`,
   `sys/attr.h`, …) and the framework link stubs come from Xcode or the Command
   Line Tools on the building Mac. Apple's Xcode and Apple SDKs Agreement lets
