@@ -13,8 +13,8 @@ Aether wrapper (`module.ae`) over one C or Objective-C file that calls
 Apple's frameworks, imported as `import mac.<name>` with the repo root on the
 module path. Fourteen `std.spec`/shell suites in `test/`; `./ci.sh` links all
 modules into one program then runs the suites. `tools/mkapp.sh` wraps a
-binary as an ad-hoc-signed `.app`. Needs Aether ≥ 0.717.0 (`test_attrlist.ae`
-uses `fs.hard_link`, added there).
+binary as an ad-hoc-signed `.app`. Needs Aether ≥ 0.766.0, the family-wide
+floor (the code itself needs 0.717.0: `test_attrlist.ae` uses `fs.hard_link`).
 
 ## The one rule that is not negotiable
 
