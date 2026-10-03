@@ -34,12 +34,14 @@ jobs:
           echo "LIBRARY_PATH=$(brew --prefix openssl@3)/lib:$(brew --prefix)/lib:${LIBRARY_PATH:-}" >> "$GITHUB_ENV"
 
       # Pinned so a new upstream release cannot change this pipeline's colour
-      # on its own; bump deliberately. v0.717.0 is the first release carrying
-      # fs.hard_link, which test_attrlist.ae uses. A tag with no prebuilt
+      # on its own; bump deliberately. v0.717.0 was the first release carrying
+      # fs.hard_link, which test_attrlist.ae uses. v0.766.0 (2026-10-03) is the
+      # family-wide floor Paul set for every Aether repo; no macae source change
+      # needed, ./ci.sh all green against it. A tag with no prebuilt
       # asset makes get.sh build from source, which is fine on this runner.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.717.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.766.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
