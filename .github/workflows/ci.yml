@@ -39,11 +39,16 @@ jobs:
       # family-wide floor Paul set for every Aether repo; no macae source change
       # needed, ./ci.sh all green against it. v0.778.0 (2026-10-05) is the
       # family-wide floor again, moved together: no new primitive needed, ./ci.sh all
-      # green against the released 0.778.0. A tag with no prebuilt
+      # green against the released 0.778.0. v0.823.0 (2026-10-17) is the
+      # family-wide floor once more, moved with the rest of the family past
+      # 0.818's ownership rework: no new primitive needed and no source change
+      # (no kept ptr parameter, no string freed by a callee; every extern
+      # string result was already @heap), ./ci.sh all green against 0.823.0
+      # built from its tag. A tag with no prebuilt
       # asset makes get.sh build from source, which is fine on this runner.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.778.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.823.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
