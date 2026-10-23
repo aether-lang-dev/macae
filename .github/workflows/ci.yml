@@ -47,11 +47,18 @@ jobs:
       # built from its tag. v0.824.0 (2026-10-17) is a TRACKING bump with the
       # family (helpers under _aether_, spawn_<Actor> an error, E0900 through
       # closures, hidden --emit=lib names): no new primitive, no source change,
-      # ./ci.sh all green against 0.824.0 built from its tag. A tag with no prebuilt
+      # ./ci.sh all green against 0.824.0 built from its tag. v0.841.0 (2026-10-23)
+      # is the family move past 0.836-0.840's ownership rules and 0.835's E0202,
+      # with aeb v0.333 for the rest of the family (macae uses no aeb). Checked, not
+      # assumed: all thirteen modules and every suite compile unchanged on 0.841.0
+      # (macae keeps no ptr or fn parameter, so there is nothing to mark @keep),
+      # and ./ci.sh is green on the 0.841.0 release install. The one change is a
+      # test's: test_trash accepts <volume>/.Trashes/<uid> as well as ~/.Trash,
+      # which is where a file on another volume goes. A tag with no prebuilt
       # asset makes get.sh build from source, which is fine on this runner.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.824.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.841.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh

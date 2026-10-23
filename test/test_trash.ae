@@ -18,7 +18,9 @@ main() {
             spec.assert_str_eq(err, "", "trashed")
             spec.assert_false(fs.exists(f), "gone from the folder")
             spec.assert_true(fs.exists(where), "present in the Trash")
-            spec.assert_contains(where, "/.Trash/", "in a Trash folder")
+            // the home Trash, or <volume>/.Trashes/<uid> when the file lives on another volume
+            in_trash = string.contains(where, "/.Trash/") + string.contains(where, "/.Trashes/")
+            spec.assert_true(in_trash > 0, "in a Trash folder")
             spec.assert_contains(where, "macae-trash-test", "keeps its name")
             _c = fs.delete(where)
         }
