@@ -56,9 +56,16 @@ jobs:
       # test's: test_trash accepts <volume>/.Trashes/<uid> as well as ~/.Trash,
       # which is where a file on another volume goes. A tag with no prebuilt
       # asset makes get.sh build from source, which is fine on this runner.
+      # v0.931.0 (2026-11-20) is a TRACKING bump with the family, no new
+      # primitive needed and no source change: all fourteen modules link in one
+      # program and the sysinfo, iopolicy, attrlist, fsevents, volume, trash,
+      # defaults, workspace, power, quicklook, bundle and mkapp suites pass on
+      # the 0.931.0 release install (fda and keychain compile; they were not
+      # run in that session because they can raise macOS permission prompts).
+      # The floor stays where it is.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.841.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.931.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
