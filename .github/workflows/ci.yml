@@ -62,10 +62,14 @@ jobs:
       # defaults, workspace, power, quicklook, bundle and mkapp suites pass on
       # the 0.931.0 release install (fda and keychain compile; they were not
       # run in that session because they can raise macOS permission prompts).
+      # v0.933.0 (2026-11-21) is a TRACKING bump again, no new primitive needed and
+      # no source change: the same twelve suites pass on the 0.933.0 release install
+      # and fda and keychain compile (the compiler change since 0.931.0 is only the
+      # actor-local scoping fix; the stdlib is byte-identical).
       # The floor stays where it is.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.931.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.933.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh

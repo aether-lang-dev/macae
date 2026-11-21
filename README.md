@@ -81,8 +81,7 @@ opens Finder or System Settings; the workspace and fda suites assert that
 refusal. The trash and keychain suites create and remove their own items. On a
 Mac where the keychain refuses writes, that suite skips and says why.
 
-CI runs `./ci.sh` on GitHub's `macos-latest` runner with Aether pinned to
-0.931.0: all 14 suites green there. On a Mac reached over ssh with no console
+CI runs `./ci.sh` on GitHub's `macos-latest` runner with Aether pinned to0.933.0: all 14 suites green there. On a Mac reached over ssh with no console
 login (a headless VM), the keychain suite skips instead ("no usable keychain
 in this session"); everything else passes.
 
