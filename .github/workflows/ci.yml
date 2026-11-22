@@ -73,10 +73,15 @@ jobs:
       # compile (the rest were not run there, as they can raise permission prompts).
       # The generated C of every macae program is identical on 0.934.0 and 0.935.0,
       # so the new receiver rule changes no program here.
+      # v0.936.0 (2026-11-22) is a TRACKING bump again, no new primitive needed and no
+      # source change: all fourteen modules link in one program on the 0.936.0
+      # release install and the same eight suites pass (30 checks); trash, quicklook,
+      # fda and keychain compile. macae has no generated C or runtime of its own, so
+      # runtime ABI revision 6 touches nothing here.
       # The floor stays where it is.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.935.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.936.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
