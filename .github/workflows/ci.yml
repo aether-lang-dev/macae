@@ -96,10 +96,15 @@ jobs:
       # bundle) and trash, quicklook, fda, keychain and workspace compile. 0.942-0.944
       # are performance only (runtime actor batching, inline std.math, inline
       # slice-view release); macae sends no actor messages and uses no std.math.
+      # v0.945.0 (2026-11-25) is a TRACKING bump again, no new primitive needed and no
+      # source change: all thirteen modules link in one program on the 0.945.0
+      # release install, the same eight suites pass (30 checks, macOS arm64) and
+      # trash, quicklook, fda, keychain and workspace compile. 0.945.0's glob-import,
+      # struct-literal and E0301 typechecker fixes fire nowhere in macae.
       # The floor stays where it is.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.944.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.945.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
