@@ -104,10 +104,15 @@ jobs:
       # v0.946.0 (2026-11-25) is a TRACKING bump again, no new primitive needed and no
       # source change; its selective-import `math.sqrt` fix (aether#3877) fires nowhere
       # in macae. Verified: see the commit.
+      # v0.949.0 (2026-11-28) is a TRACKING bump again, no new primitive needed and no
+      # source change: all thirteen modules link in one program on the 0.949.0 release
+      # install and the fourteen suites pass (55 checks, macOS arm64, ./ci.sh). macae
+      # uses no string.to_double and no os.which/os.getcwd, so the renames to
+      # string.to_float and 0.947.0's sandbox check on os.which fire nowhere.
       # The floor stays where it is.
       - name: Install the Aether toolchain
         env:
-          AETHER_REF: ${{ vars.AETHER_REF || 'v0.946.0' }}
+          AETHER_REF: ${{ vars.AETHER_REF || 'v0.949.0' }}
         run: |
           curl -fsSL https://raw.githubusercontent.com/aether-lang-dev/aether/main/get.sh \
             | PREFIX="$HOME/.local" sh
